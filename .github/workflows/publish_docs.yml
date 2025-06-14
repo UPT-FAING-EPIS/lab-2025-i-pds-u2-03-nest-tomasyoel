@@ -1,0 +1,83 @@
+name: Publish Documentation
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  publish-docs:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies for Payment project
+      run: |
+        cd Payment
+        npm ci
+        
+    - name: Generate documentation for Payment
+      run: |
+        cd Payment
+        npx @compodoc/compodoc -p tsconfig.json -d ../docs/payment --name "Payment System Documentation"
+        
+    - name: Install dependencies for ATM project
+      run: |
+        cd ATM
+        npm ci
+        
+    - name: Generate documentation for ATM
+      run: |
+        cd ATM
+        npx @compodoc/compodoc -p tsconfig.json -d ../docs/atm --name "ATM System Documentation"
+        
+    - name: Create main documentation index
+      run: |
+        mkdir -p docs
+        cat > docs/index.html << 'EOF'
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Design Patterns Documentation</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 40px; background-color: #f5f5f5; }
+                .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+                h1 { color: #333; text-align: center; margin-bottom: 30px; }
+                .project-link { display: block; padding: 20px; margin: 15px 0; background: #007bff; color: white; text-decoration: none; border-radius: 5px; text-align: center; transition: background-color 0.3s; }
+                .project-link:hover { background: #0056b3; }
+                .description { color: #666; margin-bottom: 30px; text-align: center; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>Design Patterns Documentation</h1>
+                <p class="description">Documentación de los patrones de diseño Strategy y Command implementados en TypeScript con NestJS</p>
+                <a href="./payment/index.html" class="project-link">
+                    📄 Payment System (Strategy Pattern)
+                </a>
+                <a href="./atm/index.html" class="project-link">
+                    🏧 ATM System (Command Pattern)
+                </a>
+            </div>
+        </body>
+        </html>
+        EOF
+        
+    - name: Deploy to GitHub Pages
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./docs
+        force_orphan: true

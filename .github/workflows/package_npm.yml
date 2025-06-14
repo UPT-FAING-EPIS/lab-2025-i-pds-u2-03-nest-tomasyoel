@@ -1,0 +1,131 @@
+name: Package and Publish NPM
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test-and-analyze:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        registry-url: 'https://npm.pkg.github.com'
+        
+    - name: Install dependencies for Payment project
+      run: |
+        cd Payment
+        npm ci
+        
+    - name: Run tests for Payment project
+      run: |
+        cd Payment
+        npm run test:cov
+        
+    - name: Install dependencies for ATM project
+      run: |
+        cd ATM
+        npm ci
+        
+    - name: Run tests for ATM project
+      run: |
+        cd ATM
+        npm run test:cov
+        
+    - name: SonarCloud Scan for Payment
+      uses: SonarSource/sonarcloud-github-action@master
+      with:
+        projectBaseDir: Payment
+        args: >
+          -Dsonar.organization=tomasyoel
+          -Dsonar.projectKey=tomasyoel_payment_condori
+          -Dsonar.projectName=payment_condori
+          -Dsonar.sources=libs,src
+          -Dsonar.tests=libs,src
+          -Dsonar.inclusions=**/*.ts
+          -Dsonar.test.inclusions=**/*.spec.ts
+          -Dsonar.exclusions=**/*.js,node_modules/**,coverage/**,dist/**
+          -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info
+          -Dsonar.testExecutionReportPaths=coverage/test-reporter.xml
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        
+    - name: SonarCloud Scan for ATM
+      uses: SonarSource/sonarcloud-github-action@master
+      with:
+        projectBaseDir: ATM
+        args: >
+          -Dsonar.organization=tomasyoel
+          -Dsonar.projectKey=tomasyoel_atm_condori
+          -Dsonar.projectName=atm_condori
+          -Dsonar.sources=libs,src
+          -Dsonar.tests=libs,src
+          -Dsonar.inclusions=**/*.ts
+          -Dsonar.test.inclusions=**/*.spec.ts
+          -Dsonar.exclusions=**/*.js,node_modules/**,coverage/**,dist/**
+          -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info
+          -Dsonar.testExecutionReportPaths=coverage/test-reporter.xml
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        
+    - name: Update package.json for Payment
+      run: |
+        cd Payment
+        npm version patch --no-git-tag-version
+        sed -i 's/"name": "payment"/"name": "@tomasyoel\/payment_condori"/' package.json
+        cat package.json
+        
+    - name: Update package.json for ATM
+      run: |
+        cd ATM
+        npm version patch --no-git-tag-version
+        sed -i 's/"name": "atm"/"name": "@tomasyoel\/atm_condori"/' package.json
+        cat package.json
+        
+    - name: Build Payment package
+      run: |
+        cd Payment
+        npm run build
+        
+    - name: Build ATM package
+      run: |
+        cd ATM
+        npm run build
+        
+    - name: Publish Payment package to GitHub Packages
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      run: |
+        cd Payment
+        npm publish
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Publish ATM package to GitHub Packages
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      run: |
+        cd ATM
+        npm publish
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results
+        path: |
+          Payment/coverage/
+          ATM/coverage/

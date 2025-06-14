@@ -33,11 +33,19 @@ En la imagen Steve compra un monitor y una lavadora, pero a la hora de acercarse
 ```Bash
 nest new Payment -p npm -g
 ```
+
+![](img/1.png)
+
+![](img/2.png)
+
 3. En el terminal, acceder a la solución creada y ejecutar el siguiente comando para crear una nueva libreria de clases y adicionarla a la solución actual.
 ```Bash
 cd Payment
 nest g lib domain
 ```
+
+![](img/3.png)
+
 4. En el terminal, ejecutar el siguiente comando para crear un nuevo proyecto de pruebas y adicionarla a la solución actual
 ```Bash
 nest g itf IPaymentStrategy -p domain --flat --no-spec
@@ -47,7 +55,12 @@ nest g cl CashPaymentStrategy -p domain --flat --no-spec
 nest g cl PaymentContext -p domain --flat --no-spec
 nest g cl PaymentService -p domain --flat --no-spec
 ```
+
+![](img/4.png)
+
 5. Iniciar Visual Studio Code (VS Code) abriendo el folder de la solución como proyecto. En el proyecto Payment, si existe un archivo app.controller.spec.ts proceder a eliminarlo.
+
+![](img/5.png)
 
 6. En el VS Code, primero se necesita implementar la interfaz que servirá de ESTRATEGIA base para las posibles implementaciones de pagos, en el proyecto Notifications.Domain proceder a modificar el archivo ipayment-strategy.interface.ts:
 ```TS
@@ -55,6 +68,9 @@ export interface IPaymentStrategy {
     Pay(amount: number): boolean;
 }
 ```
+
+![](img/6.png)
+
 7. En el VS Code, ahora proceder a implementar las clases concretas o implementaciones a partir de la interfaz creada, Para esto en el proyecto Payment.Domain proceder a modificar los archivos siguientes:
 > credit-card-payment-strategy.ts
 ```TS
@@ -67,6 +83,9 @@ export class CreditCardPaymentStrategy implements IPaymentStrategy {
     }    
 }
 ```
+
+![](img/7.png)
+
 > debit-card-payment-strategy.ts
 ```TS
 import { IPaymentStrategy } from "./ipayment-strategy.interface";
@@ -77,6 +96,9 @@ export class DebitCardPaymentStrategy implements IPaymentStrategy {
     }
 }
 ```
+
+![](img/8.png)
+
 > cash-payment-strategy.ts
 ```TS
 import { IPaymentStrategy } from "./ipayment-strategy.interface";
@@ -87,6 +109,9 @@ export class CashPaymentStrategy implements IPaymentStrategy {
     }
 }
 ```
+
+![](img/9.png)
+
 8. En el VS Code, seguidamente crear la clase que funcionara de contexto y permitira la ejecución de cualquier estrategia, por lo que en el proyecto de Payment.Domain se debe modificar el archivo payment-context.ts con el siguiente código:
 ```TS
 import { IPaymentStrategy } from "./ipayment-strategy.interface";
@@ -108,6 +133,9 @@ export class PaymentContext {
         }    
 }
 ```
+
+![](img/10.png)
+
 9. En el VS Code, adicionalmente para facilitar la utilización de las diferentes estrategias adicionaremos una fachada, para eso modificar el archivo payment-service.ts en el proyecto Payment.Domain:
 ```TS
 import { CashPaymentStrategy } from "./cash-payment-strategy";
@@ -147,6 +175,9 @@ export enum PaymentType
     Cash = 3, // 3 for Cash
 }
 ```
+
+![](img/11.png)
+
 10. En el VS Code, ahora proceder a implementar unas pruebas para verificar el correcto funcionamiento de la aplicación. Para esto al proyecto Payment.Domain modificar el archivo domain.service.spec.ts y agregar el siguiente código:
 ```TS
 import { PaymentService } from './payment-service';
@@ -169,15 +200,24 @@ describe('GivenAnUnknownPaymentTypeAndAmount_WhenProcessPayment_ResultIsError', 
   });
 });
 ```
+
+![](img/12.png)
+
 11. Ahora necesitamos comprobar las pruebas contruidas para eso abrir un terminal en VS Code (CTRL + Ñ) o vuelva al terminal anteriormente abierto, y ejecutar los comandos:
 ```Bash
 npm run test:cov
 ```
+
+![](img/13.png)
+
 12. Si las pruebas se ejecutaron correctamente debera aparcer un resultado similar al siguiente:
 ```Bash
 Test Suites: 1 passed, 1 total
 Tests:       4 passed, 4 total
 ```
+
+![](img/14.png)
+
 
 13. Finalmente se puede apreciar que existen tres componentes principales en el patrón ESTARTEGIA:
 a. Estrategia: declarada en una interfac para ser implementada para todos los algoritmos soportado
@@ -190,13 +230,19 @@ c. Conexto: esta es la clase que mantiene la referencia al objeto Estrategia y l
 ```Bash
 tsuml2 --glob "./libs/**/*.ts" --outMermaidDsl "./class_diagram.md"
 ```
+
+![](img/15.png)
+
 15. En el VS Code, modificar el archivo class_diagram.md y adicionar \```mermaid al inicio del archivo y al final adicionar \```
+
+![](img/16.png)
 
 16. En el terminal, ejecutar el siguiente comando para generar la documentación del proyecto, esta se creara en la carpeta documentation
 ```Bash
 npx @compodoc/compodoc -p tsconfig.json -s
 ```
 
+![](img/17.png)
 
 ### PARTE II: Command Design Pattern
 
@@ -205,11 +251,19 @@ npx @compodoc/compodoc -p tsconfig.json -s
 ```
 nest new ATM -p npm -g
 ```
+
+![](img/19-1.png)
+
+![](img/19-2.png)
+
 3. En el terminal, ejecutar los siguientes comandos para acceder a la carpeta del proyecto y crear una nueva libreria de clases y adicionarla a la aplicación actual.
 ```
 cd ATM
 nest g lib domain
 ```
+
+![](img/19-3.png)
+
 4. En el terminal, ejecutar el siguiente comando para crear los archivos necesarios para el laboratorio.
 ```
 nest g itf ICommand -p domain --flat --no-spec
@@ -218,7 +272,12 @@ nest g cl WithdrawCommand -p domain --flat --no-spec
 nest g cl DepositCommand -p domain --flat --no-spec
 nest g cl ATM -p domain --flat --no-spec
 ```
+![](img/19-4.png)
+
 5. Iniciar Visual Studio Code (VS Code) abriendo el folder de la solución como proyecto. En el proyecto ATM, si existe un archivo app.controller.spec.ts proceder a eliminarlo..
+
+
+![](img/19-5.png)
 
 6. En el VS Code, inicialmente se necesita implementar la clase Cuenta que se utilizara en todas los comandos del ATM. Para esto modificar el archivo account.ts en el proyecto ATM.Domain con el siguiente código:
 ```TS
@@ -239,12 +298,18 @@ export class Account {
   }
 }
 ```
+
+![](img/19-6.png)
+
 7. En el VS Code, seguidamente se necesita implementar la interfaz principal para la generación de comandos, para esto modificar el archivo icommand.interface.ts en el proyecto ATM.Domain con el siguiente código:
 ```TS
 export interface ICommand {
   Execute(): void;
 }
 ```
+
+![](img/19-7.png)
+
 8. En el VS Code, ahora se debe implementar cada una de clases correspondiente a los comandos de Retirar y Depositar para eso se deberan modificar los siguientes archivos con el còdigo correspondiente:
 > withdraw-command.ts
 ```TS
@@ -264,6 +329,9 @@ export class WithdrawCommand implements ICommand {
   }
 }
 ```
+
+![](img/19-8.png)
+
 > deposit-command.ts
 ```TS
 import { Account } from './account';
@@ -283,6 +351,8 @@ export class DepositCommand implements ICommand {
 }
 ```
 
+![](img/19-9.png)
+
 8. En el VS Code, finalmente para unir todos los comandos crear la clase ATM que permitira el manejo de los comandos, modificar el archivo atm.ts en el proyecto ATM.Domain:
 ```TS
 import { ICommand } from './icommand.interface';
@@ -297,6 +367,8 @@ export class ATM {
   }
 }
 ```
+
+![](img/19-10.png)
 
 9. Para probar esta implementación, modificar el archivo domain.service.spec.ts en el proyecto ATM.Domain:
 ```TS
@@ -337,15 +409,24 @@ describe('GivenAccountAndDeposit_ThenExecute_ReturnsCorrectAmount', () => {
   });
 });
 ```
+
+![](img/19-11.png)
+
 10. Ahora necesitamos comprobar las pruebas contruidas para eso abrir un terminal en VS Code (CTRL + Ñ) o vuelva al terminal anteriormente abierto, y ejecutar el comando:
 ```Bash
 npm run test:cov
 ```
+
+![](img/19-12.png)
+
 11. Si las pruebas se ejecutaron correctamente debera aparcer un resultado similar al siguiente:
 ```Bash
 Test Suites: 1 passed, 1 total
 Tests:       2 passed, 2 total
 ```
+
+![](img/19-13.png)
+
 12. Revisemos como funciona el patrón de diseño Comando.
 
 ![image](https://github.com/UPT-FAING-EPIS/SI889_PDS/assets/10199939/50ecff5e-dc02-4b54-980f-8b72546b4129)
@@ -362,18 +443,34 @@ Client: Es la clase que crea y ejecuta el comando.
 ```Bash
 tsuml2 --glob "./libs/**/*.ts" --outMermaidDsl "./class_diagram.md"
 ```
+
+![](img/19-14.png)
+
 14. En el VS Code, modificar el archivo class_diagram.md y adicionar \```mermaid al inicio del archivo y al final adicionar \```
+
+![](img/19-15.png)
+
+
 
 15. En el terminal, ejecutar el siguiente comando para generar la documentación del proyecto, esta se creara en la carpeta documentation
 ```Bash
 npx @compodoc/compodoc -p tsconfig.json -s
 ```
 
+![](img/19-16.png)
 ---
 ## Actividades Encargadas
 1. Completar la documentación de todas las clases, metodos, propiedades y generar una automatizaciòn .github/workflows/publish_docs.yml (Github Workflow) utilizando compodoc y publicar el site de documentaciòn generado en Github Pages.
+
+![](img/actionpublish.png)
+
 2. Generar una automatización de nombre .github/workflows/package_npm.yml (Github Workflow) que ejecute:
    * Pruebas unitarias y reporte de pruebas automatizadas
    * Realice el analisis con SonarCloud.
    * Contruya los paquetes con nombre payment_[apellido] y atm_[apellido] y lo publique en Github Packages
+
+![](img/actionpackage.png)
+
 3. Generar una automatización de nombre .github/workflows/release_version.yml (Github Workflow) que contruya la version (release) del paquete y publique en Github Releases.
+
+![](img/actionrelease.png)

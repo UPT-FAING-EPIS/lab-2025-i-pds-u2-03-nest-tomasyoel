@@ -1,0 +1,177 @@
+name: Release Version
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.0.0)'
+        required: true
+        default: '1.0.0'
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Get version
+      id: get_version
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          echo "TAG_NAME=v${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+        else
+          echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Install dependencies for Payment project
+      run: |
+        cd Payment
+        npm ci
+        
+    - name: Install dependencies for ATM project
+      run: |
+        cd ATM
+        npm ci
+        
+    - name: Run tests for Payment project
+      run: |
+        cd Payment
+        npm run test:cov
+        
+    - name: Run tests for ATM project
+      run: |
+        cd ATM
+        npm run test:cov
+        
+    - name: Generate documentation for Payment
+      run: |
+        cd Payment
+        npx @compodoc/compodoc -p tsconfig.json -d ../release-docs/payment --name "Payment System Documentation v${{ steps.get_version.outputs.VERSION }}"
+        
+    - name: Generate documentation for ATM
+      run: |
+        cd ATM
+        npx @compodoc/compodoc -p tsconfig.json -d ../release-docs/atm --name "ATM System Documentation v${{ steps.get_version.outputs.VERSION }}"
+        
+    - name: Update package versions
+      run: |
+        cd Payment
+        npm version ${{ steps.get_version.outputs.VERSION }} --no-git-tag-version
+        sed -i 's/"name": "payment"/"name": "@tomasyoel\/payment_condori"/' package.json
+        cd ../ATM
+        npm version ${{ steps.get_version.outputs.VERSION }} --no-git-tag-version
+        sed -i 's/"name": "atm"/"name": "@tomasyoel\/atm_condori"/' package.json
+        
+    - name: Build Payment package
+      run: |
+        cd Payment
+        npm run build
+        
+    - name: Build ATM package
+      run: |
+        cd ATM
+        npm run build
+        
+    - name: Create release packages
+      run: |
+        mkdir -p release-artifacts
+        cd Payment
+        npm pack
+        mv *.tgz ../release-artifacts/payment_condori-${{ steps.get_version.outputs.VERSION }}.tgz
+        cd ../ATM
+        npm pack
+        mv *.tgz ../release-artifacts/atm_condori-${{ steps.get_version.outputs.VERSION }}.tgz
+        
+    - name: Archive documentation
+      run: |
+        tar -czf release-artifacts/documentation-${{ steps.get_version.outputs.VERSION }}.tar.gz release-docs/
+        
+    - name: Generate release notes
+      id: generate_notes
+      run: |
+        cat > release_notes.md << 'EOF'
+        # Release ${{ steps.get_version.outputs.TAG_NAME }}
+        
+        ## 🚀 Features
+        
+        ### Payment System (Strategy Pattern)
+        - ✅ Strategy pattern implementation for payment processing
+        - ✅ Support for Credit Card, Debit Card, and Cash payments
+        - ✅ PaymentService facade for easy integration
+        - ✅ Comprehensive unit tests with coverage reporting
+        
+        ### ATM System (Command Pattern)
+        - ✅ Command pattern implementation for ATM operations
+        - ✅ Support for Withdraw and Deposit commands
+        - ✅ Account management with balance validation
+        - ✅ Command execution through ATM invoker
+        
+        ## 📦 Packages
+        
+        - `@tomasyoel/payment_condori@${{ steps.get_version.outputs.VERSION }}`
+        - `@tomasyoel/atm_condori@${{ steps.get_version.outputs.VERSION }}`
+        
+        ## 📊 Quality Metrics
+        
+        - ✅ Unit tests passing
+        - ✅ Code coverage reports included
+        - ✅ SonarCloud analysis completed
+        - ✅ TypeScript compilation successful
+        
+        ## 📚 Documentation
+        
+        Complete API documentation generated with Compodoc is included in this release.
+        
+        ## 🛠️ Installation
+        
+        ```bash
+        # Install Payment package
+        npm install @tomasyoel/payment_condori@${{ steps.get_version.outputs.VERSION }}
+        
+        # Install ATM package
+        npm install @tomasyoel/atm_condori@${{ steps.get_version.outputs.VERSION }}
+        ```
+        
+        ## 👨‍💻 Author
+        
+        Developed by: Condori
+        Organization: tomasyoel
+        EOF
+        
+    - name: Create or update tag
+      if: github.event_name == 'workflow_dispatch'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git tag -a ${{ steps.get_version.outputs.TAG_NAME }} -m "Release ${{ steps.get_version.outputs.TAG_NAME }}"
+        git push origin ${{ steps.get_version.outputs.TAG_NAME }}
+        
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.get_version.outputs.TAG_NAME }}
+        name: Release ${{ steps.get_version.outputs.TAG_NAME }}
+        body_path: release_notes.md
+        draft: false
+        prerelease: false
+        files: |
+          release-artifacts/payment_condori-${{ steps.get_version.outputs.VERSION }}.tgz
+          release-artifacts/atm_condori-${{ steps.get_version.outputs.VERSION }}.tgz
+          release-artifacts/documentation-${{ steps.get_version.outputs.VERSION }}.tar.gz
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
